@@ -71,7 +71,7 @@ details{font-size:14.5px;margin:6px 0 20px} table{border-collapse:collapse;width
 <tr data-view="epi"><td>3</td><td>TwinLife, Germany</td><td>change in any outcome</td><td>not detected</td><td></td><td>Paper 3 Supplemental Table S3a Model_0 and Paper 3 Supplemental Table S3b Model_3, TwinLife</td></tr>
 </table></details>
 <script>
-const VIEW0=[-38,16], CLOUD_FADE=0.8, HOLD_LEN=0.05, FADE_LEN=0.035, TRAVEL_S=4, DWELL=1.2, FADE_S=0.5, FAN_W=0.04, FAN_PX=15, CURVE_FILL=0.32, SUM_LEN=0.2, SUM_S=3.5, FIN_LEN=0.6, FIN_S=6, DISC_COL="#6E6E6E", BLUR=7;
+const VIEW0=[-38,16], CLOUD_FADE=0.8, HOLD_LEN=0.05, FADE_LEN=0.035, TRAVEL_S=4, DWELL=1.2, FADE_S=0.5, FAN_W=0.04, FAN_PX=15, BOX_OP=0.16, PAPER_BOX=["attainment","cognitive"], CURVE_FILL=0.32, SUM_LEN=0.2, SUM_S=3.5, FIN_LEN=0.6, FIN_S=6, DISC_COL="#6E6E6E", BLUR=7;
 const LAB_Y0=-350, AGE_AXIS=[1.5000,0.5000,30.0000,70.0000], UNITS=["years","regions","years of age"], UNIT_SCALE=[42.0690,2.6316,20.0000];
 const OUT_LABEL={attainment:"educational attainment",mobility:"educational mobility",academic:"academic performance",cognitive:"cognitive performance"};
 const LAYER_LABEL={east:"East Germany",west:"West Germany",nl:"Netherlands",uk:"UK",us:"US",other:"Other or not stated",us_ffcws:"US (FFCWS)",us_ttp:"US (Texas)"};
@@ -300,17 +300,21 @@ function drawDyn() {
   }
   // Arrows, far ones first.
   const O = view(v.O);
-  // Boxes as in Figure 1 for the samples of the milestones held at, drawn as the opening
-  // draws the papers' boxes: the faces turned towards the viewer, each a tint of its
-  // paper's colour; then the association across birth years (area and line) and its beta axis.
-  const bx = new Set();
+  // Boxes as in Figure 2 for the samples of the milestones held at. The outcomes in
+  // PAPER_BOX are drawn as the opening draws the papers' boxes (the faces turned towards
+  // the viewer, each a tint of its paper's colour); the others in the outcome's colour,
+  // faces back to front. Then the association across birth years (area and line) and
+  // its beta axis.
+  const bx = new Map();
   const boxed_ms = only() ? now.ms : st.kind === "finale" ? [] : shownMs().filter(m => !m.change && reached(m));
-  boxed_ms.forEach(m => { if (m.box && (v.boxes[m.box].kind === "sample" || only())) bx.add(m.box); });
+  boxed_ms.forEach(m => { if (m.box && !bx.has(m.box) && (v.boxes[m.box].kind === "sample" || only())) bx.set(m.box, m); });
   const poly = (pts, attrs) => add("polygon", Object.assign({ points: pts.map(view).map(p => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ") }, attrs), gDyn);
-  for (const id of bx) {
+  const depth = f => f.reduce((s, p) => s + view(p)[2], 0) / f.length;
+  for (const [id, m] of bx) {
     const b = v.boxes[id], all = b.faces.flat();
     const c = [0, 1, 2].map(i => all.reduce((s, p) => s + p[i], 0) / all.length);
-    b.faces.forEach((f, k) => { if (facing(f, c)) poly(f, { fill: P1.tint[b.p][k], "fill-opacity": P1.op, stroke: P1.edge[b.p], "stroke-opacity": 0.8, "stroke-width": 1 }); });
+    if (PAPER_BOX.includes(m.out)) b.faces.forEach((f, k) => { if (facing(f, c)) poly(f, { fill: P1.tint[b.p][k], "fill-opacity": P1.op, stroke: P1.edge[b.p], "stroke-opacity": 0.8, "stroke-width": 1 }); });
+    else b.faces.slice().sort((p, q) => depth(q) - depth(p)).forEach(f => poly(f, { fill: m.col, "fill-opacity": BOX_OP, stroke: m.col, "stroke-opacity": 0.55, "stroke-width": 0.8 }));
     b.curves.forEach(c => {
       poly(c.area, { fill: c.col, "fill-opacity": CURVE_FILL, stroke: "none" });
       const q = c.line.map(view);
