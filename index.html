@@ -225,9 +225,17 @@ function drawStatic() {
     if (tx.c.includes("tick") || tx.c.includes("period")) ticks.push(n.getBBox());
     if (tx.c.includes("twoline")) { // the bracket in a second, smaller line; the two moved clear of the axis labels,
       // down below the birth axis, up above the age and region axes
-      const [l1, l2] = tx.t.split(" ("), up = tx.c.includes("up");
+      const [l1, l2] = tx.t.split(" ("), up = tx.c.includes("up"), birth = tx.c.includes("birth") && ticks.length;
+      let x = q[0];
+      if (birth) { // right-aligned, ending left of the first birth year and starting below it, clear of the years that follow
+        const f = ticks[0];
+        x = f.x - 4;
+        n.setAttribute("x", x);
+        n.setAttribute("y", f.y + f.height + 14);
+        n.setAttribute("style", "text-anchor:end");
+      }
       n.textContent = l1;
-      if (l2) add("tspan", { x: q[0], dy: 16, class: "l2" }, n).textContent = "(" + l2;
+      if (l2) add("tspan", { x: x, dy: 16, class: "l2" }, n).textContent = "(" + l2;
       if (up) n.setAttribute("y", +n.getAttribute("y") - 16);
       for (let i = 0; i < 12; i++) {
         const b = n.getBBox();
